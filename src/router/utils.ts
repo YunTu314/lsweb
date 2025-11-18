@@ -18,7 +18,7 @@ import {
 } from "@pureadmin/utils";
 import { getConfig } from "@/config";
 import { buildHierarchyTree } from "@/utils/tree";
-import { userKey, type DataInfo } from "@/utils/auth";
+import { userKey, type DataInfo, getToken } from "@/utils/auth";
 import { type menuType, routerArrays } from "@/layout/types";
 import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
 import { usePermissionStoreHook } from "@/store/modules/permission";
@@ -197,7 +197,18 @@ function handleAsyncRoutes(routeList) {
 }
 
 /** 初始化路由（`new Promise` 写法防止在异步请求中造成无限循环）*/
+/** 初始化路由 */
 function initRouter() {
+  // 获取本地信息
+  const tokenInfo = getToken();
+  console.log("获取token", tokenInfo);
+
+  // 准备参数：token 和 userId
+  const params = {
+    token: tokenInfo?.accessToken,
+    userId: tokenInfo?.userId
+  };
+
   if (getConfig()?.CachingAsyncRoutes) {
     // 开启动态路由缓存本地localStorage
     const key = "async-routes";
@@ -209,7 +220,8 @@ function initRouter() {
       });
     } else {
       return new Promise(resolve => {
-        getAsyncRoutes().then(({ data }) => {
+        // 传参调用
+        getAsyncRoutes(params).then(({ data }) => {
           handleAsyncRoutes(cloneDeep(data));
           storageLocal().setItem(key, data);
           resolve(router);
@@ -218,14 +230,14 @@ function initRouter() {
     }
   } else {
     return new Promise(resolve => {
-      getAsyncRoutes().then(({ data }) => {
+      // 传参调用
+      getAsyncRoutes(params).then(({ data }) => {
         handleAsyncRoutes(cloneDeep(data));
         resolve(router);
       });
     });
   }
 }
-
 /**
  * 将多级嵌套路由处理成一维数组
  * @param routesList 传入路由
